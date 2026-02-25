@@ -59,7 +59,7 @@ def format_message(price_375g):
     # ✅ CLEAN OUTPUT (no kg)
     msg = f"""{date_str}
 {time_str}
-មាស 3.75ក្រាម {price_375g:,.2f}$"""
+មាសគីឡូ {price_375g:,.2f}$"""
 
     return msg
 
