@@ -3,7 +3,7 @@ import datetime
 import yfinance as yf
 import telebot
 
-# === ENV VARIABLES ===
+# ===== ENV =====
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
 
@@ -12,6 +12,7 @@ if not TOKEN or not CHAT_ID:
 
 bot = telebot.TeleBot(TOKEN)
 
+# ===== GET GOLD PRICE =====
 def get_gold_price():
     try:
         gold = yf.Ticker("GC=F")
@@ -23,20 +24,22 @@ def get_gold_price():
 
         price_oz = data['Close'].iloc[-1]
 
+        # Convert ounce → gram
         grams_per_oz = 31.1034768
         price_per_gram = price_oz / grams_per_oz
 
-        price_kilo = round(price_per_gram * 1000, 2)
+        # ✅ ONLY 3.75g (your main unit)
         price_375g = round(price_per_gram * 3.75, 2)
 
-        return price_kilo, price_375g
+        return price_375g
 
     except Exception as e:
-        print("❌ Error getting gold price:", e)
+        print("❌ Error:", e)
         return None
 
 
-def format_message(price_kilo, price_375g):
+# ===== FORMAT MESSAGE =====
+def format_message(price_375g):
     # Cambodia time (UTC+7)
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=7)
 
@@ -53,25 +56,25 @@ def format_message(price_kilo, price_375g):
 
     time_str = f"ម៉ោង {hour12}:{minute:02d} {period}"
 
+    # ✅ CLEAN OUTPUT (no kg)
     msg = f"""{date_str}
 {time_str}
-មាស​គីឡូ {price_kilo:,.2f}$"""
+មាស 3.75ក្រាម {price_375g:,.2f}$"""
 
     return msg
 
 
+# ===== SEND =====
 def send_gold_price():
-    print("🚀 Running gold price bot...")
+    print("🚀 Running...")
 
-    result = get_gold_price()
+    price_375g = get_gold_price()
 
-    if not result:
-        print("❌ Skip sending (no data)")
+    if not price_375g:
+        print("❌ Skip sending")
         return
 
-    price_kilo, price_375g = result
-
-    msg = format_message(price_kilo, price_375g)
+    msg = format_message(price_375g)
 
     print("📩 MESSAGE:")
     print(msg)
@@ -81,8 +84,9 @@ def send_gold_price():
         print("✅ Sent successfully")
 
     except Exception as e:
-        print("❌ Telegram send error:", e)
+        print("❌ Telegram error:", e)
 
 
+# ===== RUN =====
 if __name__ == "__main__":
-    send_gold_price()
+    send_gold_price() 
