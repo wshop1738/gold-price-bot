@@ -3,8 +3,8 @@ import yfinance as yf
 import datetime
 import requests
 
-TOKEN = os.getenv("8454322645:AAEZjSAqVYo3h_ZFR4qT5BdQX6CjDWeM67U")
-CHAT_ID = os.getenv("-1005250443251")
+TOKEN = os.getenv("BOT_TOKEN")
+CHAT_ID = os.getenv("CHAT_ID")
 
 def send_gold_price():
     try:
@@ -33,7 +33,7 @@ def send_gold_price():
 មាស​គីឡូ ${price_kilo:,.2f}
 តម្លៃ 3.75 ក្រាម ${price_375g:,.2f}"""
         
-        # Send message using Telegram API (no telebot needed)
+        # Send using Telegram API
         url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
         payload = {"chat_id": CHAT_ID, "text": message}
         response = requests.post(url, json=payload)
@@ -41,7 +41,7 @@ def send_gold_price():
         if response.status_code == 200:
             print("✅ Sent successfully!")
         else:
-            print("❌ Telegram API error:", response.text)
+            print("❌ Telegram error:", response.text)
             
     except Exception as e:
         print("❌ Error:", str(e))
