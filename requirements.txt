@@ -1,4 +1,2 @@
 pyTelegramBotAPI
 yfinance
-schedule
-flask
