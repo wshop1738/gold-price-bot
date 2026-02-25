@@ -2,7 +2,7 @@ name: Send Gold Price
 
 on:
   schedule:
-    - cron: '5 * * * *'   # every hour (UTC) at minute 5
+    - cron: '5 * * * *'
   workflow_dispatch:
 
 jobs:
@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 📥 Checkout repo
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
       - name: 🐍 Setup Python
@@ -20,9 +20,10 @@ jobs:
 
       - name: 📦 Install dependencies
         run: |
+          pip install --upgrade pip
           pip install yfinance pyTelegramBotAPI
 
-      - name: 🚀 Run bot
+      - name: 🚀 Run Gold Bot
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
