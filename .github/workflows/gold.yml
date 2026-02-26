@@ -2,6 +2,8 @@ name: Send Gold Price
 
 on:
   schedule:
+    # Cambodia = UTC+7
+    # This runs every hour at minute 5 (Cambodia time)
     - cron: '5 * * * *'
   workflow_dispatch:
 
@@ -10,21 +12,33 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      # 1. Get your code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. Setup Python
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
 
+      # 3. Install dependencies
       - name: Install dependencies
         run: |
-          pip install yfinance pyTelegramBotAPI
+          pip install --upgrade pip
+          pip install yfinance pyTelegramBotAPI pytz
 
-      - name: Run bot
+      # 4. Run bot (with retry)
+      - name: Run bot (auto retry)
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           CHAT_ID: ${{ secrets.CHAT_ID }}
           ADMIN_CHAT_ID: ${{ secrets.ADMIN_CHAT_ID }}
-        run: python send.py
+        run: |
+          for i in 1 2 3
+          do
+            echo "Attempt $i..."
+            python send.py && break
+            echo "Retry in 10 seconds..."
+            sleep 10
+          done
