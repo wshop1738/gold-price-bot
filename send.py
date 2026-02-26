@@ -7,12 +7,25 @@ import telebot
 # ===== ENV =====
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
-ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")  # 👈 your personal Telegram ID
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")  # optional for error alerts
 
 if not TOKEN or not CHAT_ID:
     raise Exception("❌ BOT_TOKEN or CHAT_ID not set")
 
 bot = telebot.TeleBot(TOKEN)
+
+# ===== Khmer Time Period Function =====
+def get_khmer_time_period(hour):
+    if 5 <= hour <= 10:
+        return "ព្រឹក"
+    elif 11 <= hour <= 13:
+        return "ថ្ងៃ"
+    elif 14 <= hour <= 15:
+        return "រសៀល"
+    elif 16 <= hour <= 17:
+        return "ល្ងាច"
+    else:
+        return "យប់"
 
 # ===== GET GOLD PRICE =====
 def get_gold_price():
@@ -35,25 +48,24 @@ def get_gold_price():
     except Exception as e:
         raise Exception(f"Gold fetch error: {e}")
 
-
-# ===== FORMAT =====
+# ===== FORMAT MESSAGE =====
 def format_message(price):
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=7)
-
     date_str = now.strftime("%d/%m/%y")
 
     hour = now.hour
     minute = now.minute
 
-    hour12 = hour % 12 or 12
-    period = "ព្រឹក" if hour < 12 else "យប់"
+    khmer_period = get_khmer_time_period(hour)
 
-    time_str = f"ម៉ោង {hour12}:{minute:02d} {period}"
+    # Convert to 12-hour format for display
+    hour12 = hour % 12 or 12
+
+    time_str = f"ម៉ោង {hour12}:{minute:02d} {khmer_period}"
 
     return f"""{date_str}
 {time_str}
-មាស 3.75ក្រាម {price:,.2f}$"""
-
+មាសគីឡូ​ {price:,.2f}$"""
 
 # ===== SEND WITH RETRY =====
 def send_with_retry(message, retries=3):
@@ -62,34 +74,27 @@ def send_with_retry(message, retries=3):
             bot.send_message(CHAT_ID, message)
             print(f"✅ Sent (attempt {attempt})")
             return True
-
         except Exception as e:
             print(f"⚠️ Attempt {attempt} failed: {e}")
             time.sleep(5)
-
     return False
-
 
 # ===== ERROR ALERT =====
 def notify_admin(error_text):
     if not ADMIN_CHAT_ID:
         print("⚠️ No ADMIN_CHAT_ID set")
         return
-
     try:
         bot.send_message(ADMIN_CHAT_ID, f"❌ Gold Bot Error:\n{error_text}")
         print("📢 Admin notified")
-
     except Exception as e:
         print("❌ Failed to notify admin:", e)
-
 
 # ===== MAIN =====
 def run():
     try:
         price = get_gold_price()
         message = format_message(price)
-
         success = send_with_retry(message)
 
         if not success:
@@ -98,7 +103,6 @@ def run():
     except Exception as e:
         print("❌ ERROR:", e)
         notify_admin(str(e))
-
 
 if __name__ == "__main__":
     run()
