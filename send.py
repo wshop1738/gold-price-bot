@@ -1,11 +1,13 @@
 import os
 import datetime
+import time
 import yfinance as yf
 import telebot
 
 # ===== ENV =====
 TOKEN = os.getenv("BOT_TOKEN")
 CHAT_ID = os.getenv("CHAT_ID")
+ADMIN_CHAT_ID = os.getenv("ADMIN_CHAT_ID")  # 👈 your personal Telegram ID
 
 if not TOKEN or not CHAT_ID:
     raise Exception("❌ BOT_TOKEN or CHAT_ID not set")
@@ -19,28 +21,23 @@ def get_gold_price():
         data = gold.history(period="1d", interval="1m")
 
         if data.empty:
-            print("❌ No data from Yahoo Finance")
-            return None
+            raise Exception("No data from Yahoo")
 
         price_oz = data['Close'].iloc[-1]
 
-        # Convert ounce → gram
         grams_per_oz = 31.1034768
         price_per_gram = price_oz / grams_per_oz
 
-        # ✅ ONLY 3.75g (your main unit)
         price_375g = round(price_per_gram * 3.75, 2)
 
         return price_375g
 
     except Exception as e:
-        print("❌ Error:", e)
-        return None
+        raise Exception(f"Gold fetch error: {e}")
 
 
-# ===== FORMAT MESSAGE =====
-def format_message(price_375g):
-    # Cambodia time (UTC+7)
+# ===== FORMAT =====
+def format_message(price):
     now = datetime.datetime.utcnow() + datetime.timedelta(hours=7)
 
     date_str = now.strftime("%d/%m/%y")
@@ -48,45 +45,60 @@ def format_message(price_375g):
     hour = now.hour
     minute = now.minute
 
-    hour12 = hour % 12
-    if hour12 == 0:
-        hour12 = 12
-
+    hour12 = hour % 12 or 12
     period = "ព្រឹក" if hour < 12 else "យប់"
 
     time_str = f"ម៉ោង {hour12}:{minute:02d} {period}"
 
-    # ✅ CLEAN OUTPUT (no kg)
-    msg = f"""{date_str}
+    return f"""{date_str}
 {time_str}
-មាសគីឡូ {price_375g:,.2f}$"""
-
-    return msg
+មាស 3.75ក្រាម {price:,.2f}$"""
 
 
-# ===== SEND =====
-def send_gold_price():
-    print("🚀 Running...")
+# ===== SEND WITH RETRY =====
+def send_with_retry(message, retries=3):
+    for attempt in range(1, retries + 1):
+        try:
+            bot.send_message(CHAT_ID, message)
+            print(f"✅ Sent (attempt {attempt})")
+            return True
 
-    price_375g = get_gold_price()
+        except Exception as e:
+            print(f"⚠️ Attempt {attempt} failed: {e}")
+            time.sleep(5)
 
-    if not price_375g:
-        print("❌ Skip sending")
+    return False
+
+
+# ===== ERROR ALERT =====
+def notify_admin(error_text):
+    if not ADMIN_CHAT_ID:
+        print("⚠️ No ADMIN_CHAT_ID set")
         return
 
-    msg = format_message(price_375g)
-
-    print("📩 MESSAGE:")
-    print(msg)
-
     try:
-        bot.send_message(chat_id=CHAT_ID, text=msg)
-        print("✅ Sent successfully")
+        bot.send_message(ADMIN_CHAT_ID, f"❌ Gold Bot Error:\n{error_text}")
+        print("📢 Admin notified")
 
     except Exception as e:
-        print("❌ Telegram error:", e)
+        print("❌ Failed to notify admin:", e)
 
 
-# ===== RUN =====
+# ===== MAIN =====
+def run():
+    try:
+        price = get_gold_price()
+        message = format_message(price)
+
+        success = send_with_retry(message)
+
+        if not success:
+            raise Exception("Failed after retries")
+
+    except Exception as e:
+        print("❌ ERROR:", e)
+        notify_admin(str(e))
+
+
 if __name__ == "__main__":
-    send_gold_price() 
+    run() 
