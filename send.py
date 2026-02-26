@@ -52,7 +52,7 @@ def format_message(price):
 
     return f"""{date_str}
 {time_str}
-មាស 3.75ក្រាម {price:,.2f}$"""
+មាសគីឡូ​ {price:,.2f}$"""
 
 
 # ===== SEND WITH RETRY =====
